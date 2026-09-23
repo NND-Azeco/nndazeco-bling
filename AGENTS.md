@@ -23,7 +23,7 @@ python3 tools/gen_script_docs.py            # regenera specs/scripts.md
 - `fetch_*`: `fetch_all`, `fetch_pedidos_venda`, `fetch_notas_fiscais`, `fetch_contas_receber`,
   `fetch_contas_pagar`, `fetch_formas_pagamento`, `fetch_categorias`, `fetch_artista`
 - `report_*`: `report_cars`, `report_artista`
-- `apply_*`: `apply_categorias`, `apply_categorias_cars`, `apply_template1_cars`, `apply_renomear_pv_historico`
+- `apply_*`: `apply_categorias`, `apply_categorias_cars`, `apply_categorias_cap`, `apply_template1_cars`, `apply_renomear_pv_historico`
 - `check_*`: `check_lancamentos_artistas`, `check_duplicacao_lancamentos`
 - outros: `recreate_pv`, `enrich_snapshot` · helper interno: `_common`
 

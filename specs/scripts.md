@@ -111,6 +111,15 @@ Busca contas a receber (lista + detalhe) e grava data/contas_receber.json.
 
 ---
 
+### `fetch_contatos.py`
+
+Salva os contatos citados em CARs/CAPs (incremental, retomável).
+
+
+**Parâmetros:** _(nenhum — comportamento fixo)_
+
+---
+
 ### `fetch_formas_pagamento.py`
 
 Busca as formas de pagamento (lista + detalhe com `destino`) em data/formas_pagamento.json.
@@ -145,6 +154,15 @@ Extrai o vínculo PV -> Nota Fiscal e grava data/notas_fiscais.json.
 `--live` — reconsulta cada PV na API (default: deriva do snapshot).
 
 _(sem argparse; lê `sys.argv`)_
+
+---
+
+### `fetch_pedidos_compra.py`
+
+Busca pedidos de compra (lista + detalhe) e grava data/pedidos_compra.json.
+
+
+**Parâmetros:** _(nenhum — comportamento fixo)_
 
 ---
 
@@ -212,6 +230,28 @@ options:
 
 ---
 
+### `report_caps.py`
+
+Gera report_caps_por_pc.md e report_caps_sem_pc.md a partir de snapshots ao vivo.
+
+
+**Parâmetros:**
+
+```text
+usage: report_caps.py [-h] [--data-dir DATA_DIR] [--out-dir OUT_DIR]
+                      [--titulo TITULO]
+
+Gera os relatórios de CAPs por PC / sem PC.
+
+options:
+  -h, --help           show this help message and exit
+  --data-dir DATA_DIR  diretório dos snapshots
+  --out-dir OUT_DIR    diretório de saída dos relatórios
+  --titulo TITULO      título dos relatórios
+```
+
+---
+
 ### `report_cars.py`
 
 Gera report_cars_por_pv.md e report_cars_sem_pv.md a partir de snapshots ao vivo.
@@ -268,6 +308,35 @@ options:
   --plan PLAN          plano JSON (pvs/pv_only/excluir_cars)
   --data-dir DATA_DIR  diretório dos snapshots
   --execute            aplica de fato (default: dry-run)
+```
+
+---
+
+### `apply_categorias_cap.py`
+
+Aplica categoria financeira em CAPs conforme um plano JSON. Dry-run por padrão.
+
+**Entidade:** CAPs · **API:** escrita · **Muta dados:** sim
+- **Saída:** backup em `backups/backups_categorias_cap_<ts>/`
+- **Exemplo:**
+
+  ```bash
+  python3 scripts/apply_categorias_cap.py --plan plano.json        # dry-run
+  python3 scripts/apply_categorias_cap.py --plan plano.json --execute
+  ```
+
+**Parâmetros:**
+
+```text
+usage: apply_categorias_cap.py [-h] --plan PLAN [--execute] [--sleep SLEEP]
+
+Aplica categoria em CAPs a partir de um plano JSON.
+
+options:
+  -h, --help     show this help message and exit
+  --plan PLAN    plano JSON {capId: categoriaId}
+  --execute      aplica de fato (default: dry-run)
+  --sleep SLEEP  pausa entre chamadas (s)
 ```
 
 ---
@@ -482,5 +551,16 @@ options:
   -h, --help   show this help message and exit
   --file FILE  snapshot JSON a enriquecer (in-place)
 ```
+
+---
+
+## Outros
+
+### `gen_caps_categorias_editor.py`
+
+Gera caps_categorias_editor.html: editor local p/ atribuir categoria às CAPs sem PC.
+
+
+**Parâmetros:** _(nenhum — comportamento fixo)_
 
 ---

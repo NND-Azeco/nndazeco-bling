@@ -40,6 +40,23 @@ def car_put_body(car, historico=None):
     }
 
 
+def cap_put_body(cap, historico=None):
+    """Corpo de `PUT /contas/pagar/{id}` a partir do GET (omite `situacao`, read-only)."""
+    return {
+        "contato": {"id": cap["contato"]["id"]},
+        "dataEmissao": cap.get("dataEmissao"),
+        "vencimento": cap.get("vencimento"),
+        "valor": cap.get("valor"),
+        "formaPagamento": {"id": (cap.get("formaPagamento") or {}).get("id")},
+        "categoria": {"id": (cap.get("categoria") or {}).get("id")},
+        "portador": {"id": (cap.get("portador") or {}).get("id")},
+        "vendedor": {"id": (cap.get("vendedor") or {}).get("id") or 0},
+        "competencia": cap.get("competencia"),
+        "numeroDocumento": cap.get("numeroDocumento") or "",
+        "historico": cap.get("historico") if historico is None else historico,
+    }
+
+
 def erro_84(body):
     """True se o erro do PUT for 'forma de pagamento inativa' (code 84)."""
     fields = ((body or {}).get("error") or {}).get("fields") or []
