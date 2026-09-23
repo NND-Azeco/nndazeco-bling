@@ -22,17 +22,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from _common import DATA_DIR, associate_cars, load_json  # noqa: E402
+from _common import DATA_DIR, associate_cars, car_put_body, load_json  # noqa: E402
 from bling import BlingClient  # noqa: E402
-
-
-def car_body(car, categoria, forma):
-    return {"contato": {"id": car["contato"]["id"]}, "dataEmissao": car.get("dataEmissao"),
-            "vencimento": car.get("vencimento"), "valor": car.get("valor"),
-            "formaPagamento": {"id": forma}, "categoria": {"id": categoria},
-            "portador": {"id": (car.get("portador") or {}).get("id") or 0},
-            "vendedor": {"id": (car.get("vendedor") or {}).get("id") or 0},
-            "numeroDocumento": car.get("numeroDocumento") or "", "historico": car.get("historico") or ""}
 
 
 def forma_situacao(client, forma_id):
@@ -112,7 +103,10 @@ def main():
         status, data = client.request("GET", f"/contas/receber/{car_id}")
         if status != 200:
             continue
-        st, _ = client.request("PUT", f"/contas/receber/{car_id}", body=car_body(data["data"], target, desired))
+        car = data["data"]
+        car["categoria"] = {"id": target}
+        car["formaPagamento"] = {"id": desired}
+        st, _ = client.request("PUT", f"/contas/receber/{car_id}", body=car_put_body(car))
         if st in (200, 204):
             ok += 1
             print(f"CAR {car_id}: cat {cat}->{target} forma {desired} OK")
