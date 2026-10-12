@@ -371,6 +371,37 @@ options:
 
 ---
 
+### `apply_produtos.py`
+
+Cadastra produtos (obras) no ERP a partir de um plano JSON. Dry-run por padrão.
+
+**Entidade:** produtos (obras) + saldo + fornecedor · **API:** escrita · **Muta dados:** sim
+- **Saída:** ids criados em `backups/backups_produtos_<ts>/criados.json`
+- **Exemplo:**
+
+  ```bash
+  python3 scripts/apply_produtos.py --plan plano_produtos.json        # dry-run
+  python3 scripts/apply_produtos.py --plan plano_produtos.json --execute
+  ```
+
+**Parâmetros:**
+
+```text
+usage: apply_produtos.py [-h] --plan PLAN [--codes CODES] [--sleep SLEEP]
+                         [--execute]
+
+Cadastra produtos no ERP a partir de um plano JSON.
+
+options:
+  -h, --help     show this help message and exit
+  --plan PLAN    JSON com a lista de produtos
+  --codes CODES  códigos a processar (csv); default: todos do plano
+  --sleep SLEEP  intervalo entre chamadas à API
+  --execute      cria de fato (default: dry-run)
+```
+
+---
+
 ### `apply_renomear_pv_historico.py`
 
 Reescreve a numeração antiga de PV no histórico de CARs. Dry-run por padrão.
