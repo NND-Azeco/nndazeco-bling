@@ -553,14 +553,3 @@ options:
 ```
 
 ---
-
-## Outros
-
-### `gen_caps_categorias_editor.py`
-
-Gera caps_categorias_editor.html: editor local p/ atribuir categoria às CAPs sem PC.
-
-
-**Parâmetros:** _(nenhum — comportamento fixo)_
-
----
