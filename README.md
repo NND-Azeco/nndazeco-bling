@@ -28,6 +28,7 @@ Para quem for operar via IA/agente, veja [`AGENTS.md`](AGENTS.md).
 | [`specs/api-docs/api-cap.md`](specs/api-docs/api-cap.md) | Achados da API — Pedido de Compra → CAP. |
 | [`specs/api-docs/api-baixas.md`](specs/api-docs/api-baixas.md) | Achados da API — baixa, estorno e exclusão de CAR/CAP. |
 | [`specs/api-docs/api-limites.md`](specs/api-docs/api-limites.md) | Achados da API — webhooks e rate limit. |
+| [`specs/loja-virtual.md`](specs/loja-virtual.md) | Loja virtual (Bling/Tray): acesso, temas, arquitetura do tema Padrão 3.0, Twig (o que funciona), edição via API do Studio e produtos ERP → loja. |
 | [`specs/data.md`](specs/data.md) | Snapshots em `data/`, quem gera cada um, associação CAR→PV e gotchas de formato. |
 | [`specs/templates.md`](specs/templates.md) | Templates canônicos de histórico. |
 | [`specs/scripts.md`](specs/scripts.md) | **Referência de todos os scripts** + parâmetros (auto-gerado por `tools/gen_script_docs.py`). |

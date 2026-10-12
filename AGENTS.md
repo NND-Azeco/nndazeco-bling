@@ -35,6 +35,7 @@ python3 tools/gen_script_docs.py            # regenera specs/scripts.md
 | Convenções pra escrever um script novo | `specs/writing-scripts.md` |
 | Convenções de mensagem de commit | `specs/committing.md` |
 | Campos/formato dos JSON em `data/` e associação CAR→PV | `specs/data.md` |
+| Loja virtual (tema Padrão 3.0, Twig, edição via API do Studio, produto ERP → loja) | `specs/loja-virtual.md` |
 | API (`specs/api-docs/`) | `api-cars.md` CAR/`lancar-contas`/NF · `api-pv.md` recriar/editar PV · `api-cap.md` pedido de compra→CAP · `api-baixas.md` baixa/estorno/exclusão · `api-limites.md` webhooks/rate limit |
 | Textos de histórico (templates) | `specs/templates.md` |
 | Flags/args de um script | a seção dele em `specs/scripts.md` (comando abaixo) |
