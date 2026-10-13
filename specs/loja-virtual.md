@@ -145,6 +145,16 @@ O motor é **Twig do PHP, versão antiga (< 1.24)**. Testado com snippets tempor
   (plataforma "Bling Loja Virtual"). **Antes**: categoria **da loja** (tela "Incluir categorias
   para selecionados" → escolher a loja → marcar categoria → "Incluir categoria aos produtos")
   e **peso > 0** (a Tray exige).
+- **Marca (artista) no tema.** O campo **Marca** do produto no ERP (aba Características; `marca` na
+  API) chega ao tema como `product.brand` e `product.brand_id`. O **fornecedor do ERP não chega**
+  a nenhum dos ~100 campos de `product`. `brand_id` é o id do registro no cadastro de marcas da
+  loja (`/admin/products/brands`); a exportação liga o produto à marca pelo **nome** (não testado
+  com nome inexistente, acento ou espaço diferente: usar o texto exato do cadastro). No admin da
+  loja a marca também se escolhe do cadastro (Informações Adicionais → Marca → Selecionar) e chega
+  igual ao tema, com ~1 min de atraso (cache). Não testado: se reexportar com a marca vazia no ERP
+  apaga a marca escolhida na loja. Gravar `marca` pelo `PUT /produtos` pode derrubar a foto
+  interna; para produto existente, preencher pela tela. `scripts/apply_produtos.py --marca`
+  envia a marca no cadastro (opcional; padrão: não envia).
 - Erros de exportação conhecidos: "Produto precisa ter uma categoria" (categoria da loja não
   gravada); "Produto possui um vínculo ativo que não foi encontrado" (vínculo falso, ver abaixo).
 - **`POST /produtos/lojas`** cria vínculo, mas exige `idProdutoLoja` (id do produto na loja,
