@@ -7,12 +7,17 @@ lança o saldo inicial no depósito padrão via `POST /estoques`. Se o item tive
 produto via `POST /produtos/fornecedores`. Pula códigos que já existem no ERP (idempotente).
 Não envia imagens (a API só aceita URL pública) nem dados fiscais.
 
+Marca (opcional): só é enviada com `--marca`. Valor = `marca` do item, ou o nome do
+`fornecedor` se o item não tiver `marca`. O texto precisa ser igual ao de uma marca já cadastrada
+na loja virtual (ver specs/loja-virtual.md); sem `--marca` o campo não é enviado, mesmo que o
+plano o traga.
+
 Plano (lista de itens):
 [{"codigo": "OBRA-001", "nome": "Título", "preco": 25000, "situacao": "A", "marca": "Artista",
   "categoria_id": 14580914, "descricaoCurta": "...", "descricaoComplementar": "<p>...</p>",
   "estoque": 1}]
 
-Uso: python3 scripts/apply_produtos.py --plan plano_produtos.json [--codes OBRA-001,OBRA-002] [--execute]
+Uso: python3 scripts/apply_produtos.py --plan plano_produtos.json [--codes OBRA-001,OBRA-002] [--marca] [--execute]
 """
 import argparse
 import os
@@ -28,8 +33,13 @@ from _common import BACKUPS_DIR, load_json, money, save_json  # noqa: E402
 from bling import BlingClient  # noqa: E402
 
 
-def produto_body(item):
-    """Corpo de `POST /produtos` a partir de um item do plano."""
+def marca_de(item):
+    """Marca do item: `marca` do plano ou, se ausente, o nome do fornecedor (artista)."""
+    return (item.get("marca") or item.get("fornecedor") or "").strip()
+
+
+def produto_body(item, com_marca=False):
+    """Corpo de `POST /produtos` a partir de um item do plano. `marca` só entra se `com_marca`."""
     body = {
         "nome": item["nome"],
         "codigo": item["codigo"],
@@ -43,6 +53,8 @@ def produto_body(item):
     }
     if item.get("categoria_id"):
         body["categoria"] = {"id": item["categoria_id"]}
+    if com_marca and marca_de(item):
+        body["marca"] = marca_de(item)
     return body
 
 
@@ -87,6 +99,8 @@ def main():
     ap = argparse.ArgumentParser(description="Cadastra produtos no ERP a partir de um plano JSON.")
     ap.add_argument("--plan", required=True, help="JSON com a lista de produtos")
     ap.add_argument("--codes", help="códigos a processar (csv); default: todos do plano")
+    ap.add_argument("--marca", action="store_true",
+                    help="envia o campo Marca (item.marca ou nome do fornecedor); default: não envia")
     ap.add_argument("--sleep", type=float, default=0.5, help="intervalo entre chamadas à API")
     ap.add_argument("--execute", action="store_true", help="cria de fato (default: dry-run)")
     args = ap.parse_args()
@@ -113,6 +127,8 @@ def main():
     for item in plano:
         cod = item["codigo"]
         linha = f"{cod}  {money(item['preco'])}  sit={item.get('situacao', 'A')}  {item['nome']}"
+        if args.marca:
+            linha += f"  marca={marca_de(item) or '(sem marca)'}"
         if existe(client, cod):
             print(f"  = {linha}  [já existe, pulado]")
             pulados += 1
@@ -122,7 +138,7 @@ def main():
         if not args.execute:
             time.sleep(args.sleep)
             continue
-        st, body = client.request("POST", "/produtos", body=produto_body(item))
+        st, body = client.request("POST", "/produtos", body=produto_body(item, args.marca))
         if st not in (200, 201):
             print(f"    ERRO POST /produtos: {st} {body}", file=sys.stderr)
             erros += 1

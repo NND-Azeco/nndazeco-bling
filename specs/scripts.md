@@ -387,8 +387,8 @@ Cadastra produtos (obras) no ERP a partir de um plano JSON. Dry-run por padrão.
 **Parâmetros:**
 
 ```text
-usage: apply_produtos.py [-h] --plan PLAN [--codes CODES] [--sleep SLEEP]
-                         [--execute]
+usage: apply_produtos.py [-h] --plan PLAN [--codes CODES] [--marca]
+                         [--sleep SLEEP] [--execute]
 
 Cadastra produtos no ERP a partir de um plano JSON.
 
@@ -396,6 +396,8 @@ options:
   -h, --help     show this help message and exit
   --plan PLAN    JSON com a lista de produtos
   --codes CODES  códigos a processar (csv); default: todos do plano
+  --marca        envia o campo Marca (item.marca ou nome do fornecedor);
+                 default: não envia
   --sleep SLEEP  intervalo entre chamadas à API
   --execute      cria de fato (default: dry-run)
 ```
