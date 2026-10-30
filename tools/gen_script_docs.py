@@ -80,6 +80,10 @@ META = {
                                  output="backup em `backups/backups_categorias_cap_<ts>/`",
                                  example="python3 scripts/apply_categorias_cap.py --plan plano.json        # dry-run\n"
                                          "python3 scripts/apply_categorias_cap.py --plan plano.json --execute"),
+    "apply_historico": dict(entity="CAPs ou CARs (histórico)", api="escrita", mutates="sim",
+                            output="backup em `backups/backups_historico_<entidade>_<ts>/` (+ `formas_reativadas.json`)",
+                            example="python3 scripts/apply_historico.py --entidade cap --plan plano.json        # dry-run\n"
+                                    "python3 scripts/apply_historico.py --entidade cap --plan plano.json --ids 123,456 --execute"),
     "apply_produtos": dict(entity="produtos (obras) + saldo + fornecedor", api="escrita", mutates="sim",
                            output="ids criados em `backups/backups_produtos_<ts>/criados.json`",
                            example="python3 scripts/apply_produtos.py --plan plano_produtos.json        # dry-run\n"
