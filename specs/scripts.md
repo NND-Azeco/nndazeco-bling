@@ -239,7 +239,7 @@ Gera report_caps_por_pc.md e report_caps_sem_pc.md a partir de snapshots ao vivo
 
 ```text
 usage: report_caps.py [-h] [--data-dir DATA_DIR] [--out-dir OUT_DIR]
-                      [--titulo TITULO]
+                      [--expos EXPOS] [--titulo TITULO]
 
 Gera os relatórios de CAPs por PC / sem PC.
 
@@ -247,6 +247,8 @@ options:
   -h, --help           show this help message and exit
   --data-dir DATA_DIR  diretório dos snapshots
   --out-dir OUT_DIR    diretório de saída dos relatórios
+  --expos EXPOS        JSON {capId: ID de exposição} p/ o relatório do
+                       Template 5
   --titulo TITULO      título dos relatórios
 ```
 
@@ -367,6 +369,39 @@ options:
   --data-dir DATA_DIR  diretório dos snapshots
   --forma FORMA        id de forma de pagamento fallback
   --execute            aplica de fato (default: dry-run)
+```
+
+---
+
+### `apply_historico.py`
+
+Reescreve o histórico de CAPs ou CARs conforme um plano JSON. Dry-run por padrão.
+
+**Entidade:** CAPs ou CARs (histórico) · **API:** escrita · **Muta dados:** sim
+- **Saída:** backup em `backups/backups_historico_<entidade>_<ts>/` (+ `formas_reativadas.json`)
+- **Exemplo:**
+
+  ```bash
+  python3 scripts/apply_historico.py --entidade cap --plan plano.json        # dry-run
+  python3 scripts/apply_historico.py --entidade cap --plan plano.json --ids 123,456 --execute
+  ```
+
+**Parâmetros:**
+
+```text
+usage: apply_historico.py [-h] --entidade {cap,car} --plan PLAN [--ids IDS]
+                          [--execute] [--sleep SLEEP]
+
+Reescreve o histórico de CAPs/CARs a partir de um plano JSON.
+
+options:
+  -h, --help            show this help message and exit
+  --entidade {cap,car}  cap (contas a pagar) ou car (contas a receber)
+  --plan PLAN           plano JSON {id: histórico novo}
+  --ids IDS             aplica só nestes ids do plano (separados por vírgula),
+                        p/ testes
+  --execute             aplica de fato (default: dry-run)
+  --sleep SLEEP         pausa entre chamadas (s)
 ```
 
 ---
