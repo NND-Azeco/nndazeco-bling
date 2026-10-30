@@ -11,8 +11,9 @@ Fontes:
 Associação CAP→PC (CAP não tem `origem`, diferente de CAR — ver specs/api-docs/api-cap.md):
   1. numeroDocumento no formato "{numeroPC}/{parcela}" -> numeroPC
   2. histórico "Ref. ao pedido de compra nº {numero}, ..." (regex) -> numero
-  Sem match -> "sem PC" (manual). Dentro de "sem PC" separa os de Exposição
-  (histórico começa com "Tipo: EXTRAORDINÁRIA" / cita "Exposição") do resto.
+  Sem match -> "sem PC" (manual). Dentro de "sem PC", 5 tipos (nessa ordem de prioridade):
+  1 Exposição · 2 Comissões de Vendedores · 3 repasse de artista/vendas agenciadas ·
+  4 histórico vazio · 5 restante (ordem alfabética por histórico).
 
 Grupos (mesmo espírito do report_cars, PV -> PC):
   1 Acima, 2 Abaixo, 3 Duplicação exata (~2x), 4 Cobre via manual,
@@ -124,6 +125,17 @@ def is_exposicao(hist):
     return "EXTRAORDINÁRIA" in h.upper() or "exposi" in h.lower()
 
 
+def is_categoria_comissao_vendedor(cid):
+    nome = CAT_NAMES.get(str(cid or 0), "").lower()
+    return "comiss" in nome
+
+
+def is_categoria_repasse(cid):
+    """Repasse de artista ou repasse de venda agenciada (comissão de vendedor é grupo à parte)."""
+    nome = CAT_NAMES.get(str(cid or 0), "").lower()
+    return nome.startswith("repasse")
+
+
 def find_pc_number(c, pc_nums):
     """Acha o número do PC citado numeroDocumento ou no histórico de uma CAP."""
     doc = c.get("numeroDocumento") or ""
@@ -159,10 +171,16 @@ def main():
         else:
             no_pc.append(c)
 
+    # Grupos por categoria (mutuamente exclusivos): 1 Exposição · 2 repasse (artista/vendas
+    # agenciadas) · 3 Comissões de Vendedores · 4 histórico vazio · 5 restante.
     exposicao_cars = [c for c in no_pc if is_exposicao(c.get("historico"))]
-    resto = [c for c in no_pc if not is_exposicao(c.get("historico"))]
-    sem_categoria = [c for c in resto if not (c.get("categoria") or {}).get("id")]
-    outras_manuais = [c for c in resto if (c.get("categoria") or {}).get("id")]
+    resto1 = [c for c in no_pc if not is_exposicao(c.get("historico"))]
+    comissao_vendedores = [c for c in resto1 if is_categoria_comissao_vendedor((c.get("categoria") or {}).get("id"))]
+    resto2 = [c for c in resto1 if not is_categoria_comissao_vendedor((c.get("categoria") or {}).get("id"))]
+    repasse = [c for c in resto2 if is_categoria_repasse((c.get("categoria") or {}).get("id"))]
+    resto3 = [c for c in resto2 if not is_categoria_repasse((c.get("categoria") or {}).get("id"))]
+    historico_vazio = [c for c in resto3 if not (c.get("historico") or "").strip()]
+    outras_manuais = [c for c in resto3 if (c.get("historico") or "").strip()]
 
     # estado de cada PC
     info = {}
@@ -212,7 +230,11 @@ def main():
     out.append("")
     out.append("> Total de cada título = total do PC. PCs classificados por cobertura das CAPs.")
     out.append("")
-    out.append(f"- Total CAPs: **{len(caps)}** · vinculadas a PC: {n_auto} · sem PC: {len(no_pc)} (exposição: {len(exposicao_cars)}, outras: {len(outras_manuais)}) · PCs: {n_pcs} · PCs com CAP: {pc_com_cap}")
+    out.append(f"- Total CAPs: **{len(caps)}** · vinculadas a PC: {n_auto} · sem PC: {len(no_pc)} "
+               f"(exposição: {len(exposicao_cars)}, repasse: {len(repasse)}, "
+               f"comissões de vendedores: {len(comissao_vendedores)}, "
+               f"histórico vazio: {len(historico_vazio)}, outras: {len(outras_manuais)}) · "
+               f"PCs: {n_pcs} · PCs com CAP: {pc_com_cap}")
     out.append(f"- Atualizado: {now}")
     out.append("")
     out.append("## Índice")
@@ -283,44 +305,59 @@ def main():
     out2.append("")
     out2.append("**" + args.titulo + "**")
     out2.append("")
-    out2.append(f"- CAPs sem PC: **{len(no_pc)}** · Exposição: **{len(exposicao_cars)}** · Sem categoria: **{len(sem_categoria)}** · Outras manuais: **{len(outras_manuais)}**")
+    out2.append(f"- CAPs sem PC: **{len(no_pc)}** · Exposição: **{len(exposicao_cars)}** · "
+                 f"Repasse (artista/vendas agenciadas): **{len(repasse)}** · "
+                 f"Comissões de Vendedores: **{len(comissao_vendedores)}** · "
+                 f"Histórico vazio: **{len(historico_vazio)}** · Outras: **{len(outras_manuais)}**")
     out2.append(f"- Atualizado: {now}")
     out2.append("")
     out2.append("## Índice")
     out2.append("")
     out2.append(f"1. CAPs de Exposição — {len(exposicao_cars)}")
-    out2.append(f"2. CAPs sem categoria atribuída — {len(sem_categoria)}")
-    out2.append(f"3. Outras CAPs manuais — {len(outras_manuais)}")
+    out2.append(f"2. Repasse de artista / vendas agenciadas — {len(repasse)}")
+    out2.append(f"3. Comissões de Vendedores — {len(comissao_vendedores)}")
+    out2.append(f"4. CAPs com histórico vazio — {len(historico_vazio)}")
+    out2.append(f"5. Restante (ordem alfabética por histórico) — {len(outras_manuais)}")
     out2.append("")
     out2.append("")
+
+    def emit_tabela(rows, key=lambda x: x.get("vencimento") or ""):
+        out2.append("| CAP | venc | valor | situação | categoria | forma | fornecedor | histórico |")
+        out2.append("|---|---|---|---|---|---|---|---|")
+        for c in sorted(rows, key=key):
+            fnome = fornecedor_nome((c.get("contato") or {}).get("id"))
+            out2.append(f"| `{c['id']}` | {c.get('vencimento')} | {fmt(c.get('valor'))} | {sit_name(c)} | {cat_name(c)} | {fp_name(c)} | {fnome} | {r(c.get('historico'))} |")
+        out2.append("")
+
     out2.append("## 1. CAPs de Exposição")
     out2.append("")
     out2.append("> Gastos de evento/exposição lançados manualmente (sem PC associado no Bling).")
     out2.append("")
-    out2.append("| CAP | venc | valor | situação | categoria | forma | fornecedor | histórico |")
-    out2.append("|---|---|---|---|---|---|---|---|")
-    for c in sorted(exposicao_cars, key=lambda x: x.get("vencimento") or ""):
-        fnome = fornecedor_nome((c.get("contato") or {}).get("id"))
-        out2.append(f"| `{c['id']}` | {c.get('vencimento')} | {fmt(c.get('valor'))} | {sit_name(c)} | {cat_name(c)} | {fp_name(c)} | {fnome} | {r(c.get('historico'))} |")
+    emit_tabela(exposicao_cars)
+
+    out2.append("## 2. Repasse de artista / vendas agenciadas")
     out2.append("")
-    out2.append("## 2. CAPs sem categoria atribuída")
+    out2.append("> Categoria começa com `Repasse` (artista ou vendas agenciadas).")
     out2.append("")
-    out2.append("> Sem PC, não são de Exposição, e `categoria.id` = 0 (não classificadas no financeiro).")
+    emit_tabela(repasse)
+
+    out2.append("## 3. Comissões de Vendedores")
     out2.append("")
-    out2.append("| CAP | venc | valor | situação | forma | fornecedor | histórico |")
-    out2.append("|---|---|---|---|---|---|---|")
-    for c in sorted(sem_categoria, key=lambda x: x.get("vencimento") or ""):
-        fnome = fornecedor_nome((c.get("contato") or {}).get("id"))
-        out2.append(f"| `{c['id']}` | {c.get('vencimento')} | {fmt(c.get('valor'))} | {sit_name(c)} | {fp_name(c)} | {fnome} | {r(c.get('historico'))} |")
+    out2.append("> Categoria contém `Comiss` (Comissões de Vendedores, Comissionamento Vendas, Comissões).")
     out2.append("")
-    out2.append("## 3. Outras CAPs manuais")
+    emit_tabela(comissao_vendedores)
+
+    out2.append("## 4. CAPs com histórico vazio")
     out2.append("")
-    out2.append("| CAP | venc | valor | situação | categoria | forma | fornecedor | histórico |")
-    out2.append("|---|---|---|---|---|---|---|---|")
-    for c in sorted(outras_manuais, key=lambda x: x.get("vencimento") or ""):
-        fnome = fornecedor_nome((c.get("contato") or {}).get("id"))
-        out2.append(f"| `{c['id']}` | {c.get('vencimento')} | {fmt(c.get('valor'))} | {sit_name(c)} | {cat_name(c)} | {fp_name(c)} | {fnome} | {r(c.get('historico'))} |")
+    out2.append("> Sem PC, não são de Exposição, repasse ou comissão, e `historico` está vazio.")
     out2.append("")
+    emit_tabela(historico_vazio)
+
+    out2.append("## 5. Restante")
+    out2.append("")
+    out2.append("> Ordenado alfabeticamente pelo texto do histórico.")
+    out2.append("")
+    emit_tabela(outras_manuais, key=lambda x: (x.get("historico") or "").lower())
 
     with open(os.path.join(args.out_dir, "report_caps_por_pc.md"), "w", encoding="utf-8") as f:
         f.write("\n".join(out))
@@ -328,7 +365,9 @@ def main():
         f.write("\n".join(out2))
 
     print("grupos:", {k: len(v) for k, v in groups.items()})
-    print("sem PC:", len(no_pc), "exposicao:", len(exposicao_cars), "sem categoria:", len(sem_categoria), "outras:", len(outras_manuais))
+    print("sem PC:", len(no_pc), "exposicao:", len(exposicao_cars), "repasse:", len(repasse),
+          "comissoes vendedores:", len(comissao_vendedores), "historico vazio:", len(historico_vazio),
+          "outras:", len(outras_manuais))
 
 
 if __name__ == "__main__":
