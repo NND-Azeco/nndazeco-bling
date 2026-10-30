@@ -27,3 +27,12 @@
   preservando a forma antiga: **reativar a forma temporariamente** (`PUT /formas-pagamentos/{id}`
   com `situacao=1`), fazer o `PUT /contas/receber/{id}` com a forma original e **inativar
   de volta**.
+- **Erro 84 vale para CAP também** (`PUT /contas/pagar/{id}`), não só CAR. Validado em lote:
+  `apply_categorias_cap.py` (191 CAPs) e `apply_historico.py` (72 CAPs, 71 pagas) — reativar
+  cada forma inativa **uma vez** antes dos PUTs e restaurar ao final é bem mais barato que
+  reativar por chamada (poucas formas cobrem muitas contas). `apply_historico.py` grava a
+  situação original das formas em `formas_reativadas.json` antes de reativar (recuperação se o
+  processo morrer) e restaura num `finally`.
+- **CAP sem forma** (`formaPagamento.id = 0`) aceita o PUT normalmente (forma continua 0) — não
+  passa por reativação. **Editar o histórico de CAP paga** (saldo 0, com bordero) via PUT
+  também funciona, preservando situação, saldo, forma e categoria.
