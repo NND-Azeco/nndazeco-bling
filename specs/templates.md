@@ -15,6 +15,7 @@ remover ao colar.
   - Template 3 — Conta a Pagar — Comissão da Vendedora
 - **Contas Recorrentes e Extraordinárias**
   - Template 4 — Conta a Pagar — Outras despesas
+  - Template 5 — Conta a Pagar — Despesas com Exposição
 - **Lembretes Gerais** (Política de Pagamentos)
 
 ## Ciclo de Venda
@@ -103,7 +104,7 @@ Exemplo completo:
 > no Bling — é a fonte oficial da informação (inclusive para o próprio artista, que acompanha
 > por lá).
 
-## Template 4 — Outras despesas
+## Template 4 — Outras despesas / recorrentes
 
 Use para despesas recorrentes ou despesas extraordinárias.
 
@@ -118,6 +119,30 @@ Exemplo completo:
 | Unidade: SP
 | Despesa: Aluguel Galeria SP
 ```
+
+## Template 5 — Conta a Pagar — Despesas com Exposição
+
+Use para despesas ligadas a uma exposição (frete, montagem, curadoria,
+plotagem etc.). **Exposição** identifica o evento; IDs vigentes:
+
+`EXP-CUENCA-SP26` · `EXP-DEMONS-RJ26` · `EXP-ENOQUE-SP26` · `EXP-EVANDRO-SP26` ·
+`EXP-HAYASHI-SP 26` · `EXP-YEMANJA-SSA26` · `EXP-LAZARO-SP26` · `EXP-MARLON-SSA26` ·
+`EXP-DBARRETO-SSA26`
+
+```
+| Exposição: [EXP-XXXX-YY]
+| Descrição: [Descrição da despesa]
+```
+
+Exemplo completo:
+
+```
+| Exposição: EXP-LAZARO-SP26
+| Descrição: Transporte de obras para montagem
+```
+
+> **Exposição** deve bater com um dos IDs vigentes (ex.: `EXP-LAZARO-SP26`,
+> `EXP-DEMONS-RJ26`) — não inventar um novo sem alinhar antes.
 
 ## Lembretes Gerais (Política de Pagamentos)
 
@@ -134,3 +159,7 @@ Exemplo completo:
 
 - Template 1 (histórico de CAR): `scripts/apply_template1_cars.py` (dry-run por padrão).
 - Regra de repasse/comissão: `scripts/report_artista.py` (relatórios por artista).
+- Template 5 (histórico de CAP): `tools/gen_plano_template5.py` monta o plano a partir de
+  `{capId: exposição}` + `{capId: descrição}`; `scripts/apply_historico.py --entidade cap`
+  aplica (dry-run por padrão). `scripts/report_caps.py` gera `report_caps_template5.md` com o
+  histórico atual × novo para revisão antes de aplicar.
