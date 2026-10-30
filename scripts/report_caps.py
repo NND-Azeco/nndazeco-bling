@@ -15,6 +15,9 @@ Associação CAP→PC (CAP não tem `origem`, diferente de CAR — ver specs/api
   1 Exposição · 2 Comissões de Vendedores · 3 repasse de artista/vendas agenciadas ·
   4 histórico vazio · 5 restante (ordem alfabética por histórico).
 
+Terceiro relatório (opcional): report_caps_template5.md — CAPs de `expos.json`
+({capId: "EXP-..."}) com o histórico atual e o novo histórico (Template 5, specs/templates.md).
+
 Grupos (mesmo espírito do report_cars, PV -> PC):
   1 Acima, 2 Abaixo, 3 Duplicação exata (~2x), 4 Cobre via manual,
   5 Ideal, 6 PCs sem CAP.
@@ -30,11 +33,13 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from _common import DATA_DIR  # noqa: E402
+from _common import DATA_DIR, DESC_LONGA, descricao_exposicao, novo_historico  # noqa: E402
 
 _ap = argparse.ArgumentParser(description="Gera os relatórios de CAPs por PC / sem PC.")
 _ap.add_argument("--data-dir", default=DATA_DIR, help="diretório dos snapshots")
 _ap.add_argument("--out-dir", default=ROOT, help="diretório de saída dos relatórios")
+_ap.add_argument("--expos", default=os.path.join(ROOT, "expos.json"),
+                 help="JSON {capId: ID de exposição} p/ o relatório do Template 5")
 _ap.add_argument("--titulo", default="NND | AZECO — Galeria de Arte", help="título dos relatórios")
 args = _ap.parse_args()
 
@@ -358,6 +363,75 @@ def main():
     out2.append("> Ordenado alfabeticamente pelo texto do histórico.")
     out2.append("")
     emit_tabela(outras_manuais, key=lambda x: (x.get("historico") or "").lower())
+
+    # ---------- relatório CAPs do Template 5 (exposição) ----------
+    n_t5 = 0
+    if os.path.exists(args.expos):
+        expos = {str(k): v for k, v in json.load(open(args.expos, encoding="utf-8")).items()}
+        caps_by_id = {str(c["id"]): c for c in caps}
+        no_pc_ids = {str(c["id"]) for c in no_pc}
+        ausentes = sorted(k for k in expos if k not in caps_by_id)
+        com_pc = sorted(k for k in expos if k in caps_by_id and k not in no_pc_ids)
+
+        def sel(rows):
+            return [c for c in rows if str(c["id"]) in expos]
+
+        grupos_t5 = [
+            ("1. CAPs de Exposição", sel(exposicao_cars), lambda x: x.get("vencimento") or ""),
+            ("2. Repasse de artista / vendas agenciadas", sel(repasse), lambda x: x.get("vencimento") or ""),
+            ("3. Comissões de Vendedores", sel(comissao_vendedores), lambda x: x.get("vencimento") or ""),
+            ("4. CAPs com histórico vazio", sel(historico_vazio), lambda x: x.get("vencimento") or ""),
+            ("5. Restante", sel(outras_manuais), lambda x: (x.get("historico") or "").lower()),
+        ]
+        todos_t5 = [c for _, rows, _ in grupos_t5 for c in rows]
+        n_t5 = len(todos_t5)
+        sem_desc = [c for c in todos_t5 if not descricao_exposicao(c.get("historico"))]
+        longas = [c for c in todos_t5 if len(descricao_exposicao(c.get("historico"))) > DESC_LONGA]
+        por_expo = {}
+        for c in todos_t5:
+            por_expo[expos[str(c["id"])]] = por_expo.get(expos[str(c["id"])], 0) + 1
+
+        out3 = ["# Relatório — CAPs do Template 5 (Despesas com Exposição)", "",
+                "**" + args.titulo + "**", "",
+                "> Histórico atual × novo histórico (Template 5, `specs/templates.md`). "
+                "Descrição = histórico atual sem o trecho `Exposição: ...`; "
+                "`⚠️ FALTA` = nada aproveitável no histórico atual.", "",
+                f"- CAPs no `expos.json`: **{len(expos)}** · listadas aqui: **{n_t5}** · "
+                f"valor total: **{fmt(sum(c.get('valor') or 0 for c in todos_t5))}**",
+                f"- Sem descrição aproveitável (`⚠️ FALTA`): **{len(sem_desc)}** · "
+                f"descrição longa (> {DESC_LONGA} caracteres, revisar): **{len(longas)}**",
+                f"- IDs ausentes no snapshot: **{len(ausentes)}**"
+                + (f" ({', '.join(ausentes)})" if ausentes else "")
+                + f" · vinculadas a PC (fora do escopo sem PC): **{len(com_pc)}**"
+                + (f" ({', '.join(com_pc)})" if com_pc else ""),
+                f"- Atualizado: {now}", "", "## Exposições", "",
+                "| Exposição | CAPs |", "|---|---|"]
+        for ex, n in sorted(por_expo.items()):
+            out3.append(f"| {ex} | {n} |")
+        out3 += ["", "## Índice", ""]
+        for titulo, rows, _ in grupos_t5:
+            out3.append(f"- {titulo} — {len(rows)}")
+        out3 += ["", ""]
+
+        def md_novo(c):
+            texto, desc = novo_historico(c, expos[str(c["id"])])
+            if not desc:
+                texto = texto.rstrip() + " ⚠️ FALTA"
+            elif len(desc) > DESC_LONGA:
+                texto += " ⚠️ LONGA"
+            return "<br>".join(r(ln) for ln in texto.split("\n"))
+
+        for titulo, rows, key in grupos_t5:
+            out3 += [f"## {titulo}", ""]
+            out3 += ["| CAP | venc | valor | histórico | novo histórico |", "|---|---|---|---|---|"]
+            for c in sorted(rows, key=key):
+                out3.append(f"| `{c['id']}` | {c.get('vencimento')} | {fmt(c.get('valor'))} | "
+                            f"{r(c.get('historico'))} | {md_novo(c)} |")
+            out3.append("")
+        with open(os.path.join(args.out_dir, "report_caps_template5.md"), "w", encoding="utf-8") as f:
+            f.write("\n".join(out3))
+        print("template5:", n_t5, "CAPs · sem descrição:", len(sem_desc), "· longas:", len(longas),
+              "· ausentes:", len(ausentes), "· com PC:", len(com_pc))
 
     with open(os.path.join(args.out_dir, "report_caps_por_pc.md"), "w", encoding="utf-8") as f:
         f.write("\n".join(out))

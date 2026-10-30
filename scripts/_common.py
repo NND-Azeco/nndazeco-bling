@@ -91,6 +91,41 @@ def put_car(client, car, historico, sleep=0.4):
     return st, body
 
 
+RE_EXPO = re.compile(r"\s*\|?\s*Exposi[çc][ãa]o:[^\n]*", re.IGNORECASE)
+RE_CAMPO = re.compile(r"^(Tipo|Despesa|Motivo|Fornecedor/Credor|Valor|Vencimento|Aprovado por):\s*(.*)$")
+DESC_LONGA = 150
+
+
+def descricao_exposicao(hist):
+    """Descrição p/ o Template 5 a partir do histórico atual ('' se não houver o que aproveitar)."""
+    h = RE_EXPO.sub("", (hist or "").replace("\r", ""))
+    linhas = [ln.strip(" |").strip() for ln in h.split("\n")]
+    linhas = [ln for ln in linhas if ln]
+    campos = {}
+    for ln in linhas:
+        m = RE_CAMPO.match(ln)
+        if m:
+            campos[m.group(1)] = m.group(2).strip()
+    if campos.get("Despesa"):
+        partes = [campos["Despesa"]]
+        motivo = campos.get("Motivo", "")
+        if motivo and "informar" not in motivo.lower():
+            partes.append(motivo)
+        return " - ".join(partes)
+    return " - ".join(linhas)
+
+
+def template5_historico(expo_id, descricao):
+    """Histórico do Template 5 (Despesas com Exposição) — ver specs/templates.md."""
+    return f"| Exposição: {expo_id}\n| Descrição: {descricao}"
+
+
+def novo_historico(c, expo_id):
+    """Template 5 a partir do histórico atual da CAP: (texto, descrição aproveitada)."""
+    desc = descricao_exposicao(c.get("historico"))
+    return template5_historico(expo_id, desc), desc
+
+
 def find_pv_number(hist, pv_numbers):
     """Acha o número de PV (20NNNNN/20NNNNNN) citado no histórico de uma CAR manual."""
     if not hist:
